@@ -14,6 +14,10 @@ struct Hilo {
     char dir;
 };
 
+//Arreglo que contendra los hilos activos
+struct Hilo hilosActivos[100];
+int contadorHilos = 0;
+
 // Definición de la estructura para los argumentos que se usan en la funcion del hilo
 struct ThreadArgs {
     struct Hilo *hilo;
@@ -60,15 +64,11 @@ void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *colu
     fclose(archivo);
 }
 
-//Funcion para imprimir el laberinto
-void imprimirLaberinto(char laberinto[][MAX_COLUMNAS], int filas) {
-    printf("Laberinto:\n");
-    for (int i = 0; i < filas + 1; i++) {
-        printf("%s\n", laberinto[i]);
-    }
-}
-
 void *imprimir_laberinto(void *args){
+
+    //Tiempo que estara dormido
+    struct timespec tiempo = { 5,0 };
+
     //Convertir argumento en la estructura
     struct PrintArgs *print_args = (struct PrintArgs *)args;
 
@@ -80,21 +80,37 @@ void *imprimir_laberinto(void *args){
         printf("%s\n", laberinto[i]);
     };
 
+    pthread_delay_np(&tiempo);
+
+    printf("Fila: %d\n", hilosActivos[0].fila);
+
     return NULL;
 }
 
 void *HiloLogic(void *args) {
+    //Tiempo que estara dormido
+    struct timespec tiempo = { 3,0 };
+
     // Convertir el argumento genérico a la estructura ThreadArgs
     struct ThreadArgs *thread_args = (struct ThreadArgs *)args;
 
     // Acceder a los datos de la estructura
     struct Hilo *hilo = thread_args->hilo;
     char (*laberinto)[MAX_COLUMNAS] = thread_args->laberinto;
+
+    //Agregar el hilo al arreglo
+        // Agregar el hilo al arreglo
+    hilosActivos[contadorHilos].fila = hilo->fila;
+    hilosActivos[contadorHilos].columna = hilo->columna;
+    hilosActivos[contadorHilos].dir = hilo->dir;
+    contadorHilos++;
     
     if(hilo->dir == 'A'){
         while(laberinto[hilo->fila+1][hilo->columna] == '0'){
             printf("Todo Bien");
             hilo->fila = hilo->fila + 1;
+            hilosActivos[contadorHilos - 1].fila = hilo->fila;
+            pthread_delay_np(&tiempo);
         }
         printf("Choco con pared");
     }
