@@ -67,7 +67,7 @@ void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *colu
 void *imprimir_laberinto(void *args){
 
     //Tiempo que estara dormido
-    struct timespec tiempo = { 5,0 };
+    struct timespec tiempo = { 2,0 };
 
     //Convertir argumento en la estructura
     struct PrintArgs *print_args = (struct PrintArgs *)args;
@@ -75,14 +75,31 @@ void *imprimir_laberinto(void *args){
     char (*laberinto)[MAX_COLUMNAS] = print_args->laberinto;
     int filas = *(print_args->filas);
 
-    printf("Laberinto:\n");
-    for (int i = 0; i < filas + 1; i++) {
-        printf("%s\n", laberinto[i]);
-    };
+    while(1){
+        printf("Laberinto:\n");
+        for (int i = 0; i < filas + 1; i++) {
+            for (int j = 0; j < MAX_COLUMNAS; j++) {
+                // Verificar si hay un hilo en esta posición
+                int hilo_encontrado = 0;
+                for (int k = 0; k < contadorHilos; k++) {
+                    if (hilosActivos[k].fila == i && hilosActivos[k].columna == j) {
+                        hilo_encontrado = 1;
+                        break;
+                    }
+                }
+                // Imprimir '1' si hay un hilo en esta posición, de lo contrario, imprimir el laberinto normal
+                if (hilo_encontrado) {
+                    printf("1");
+                } else {
+                    printf("%c", laberinto[i][j]);
+                }
+            }
+            printf("\n");
+        }
+        pthread_delay_np(&tiempo);
+    }
+        
 
-    pthread_delay_np(&tiempo);
-
-    printf("Fila: %d\n", hilosActivos[0].fila);
 
     return NULL;
 }
@@ -99,7 +116,6 @@ void *HiloLogic(void *args) {
     char (*laberinto)[MAX_COLUMNAS] = thread_args->laberinto;
 
     //Agregar el hilo al arreglo
-        // Agregar el hilo al arreglo
     hilosActivos[contadorHilos].fila = hilo->fila;
     hilosActivos[contadorHilos].columna = hilo->columna;
     hilosActivos[contadorHilos].dir = hilo->dir;
