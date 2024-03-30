@@ -14,9 +14,15 @@ struct Hilo {
     char dir;
 };
 
-// Definición de la estructura para los argumentos que se usan en la funcion
+// Definición de la estructura para los argumentos que se usan en la funcion del hilo
 struct ThreadArgs {
     struct Hilo *hilo;
+    char (*laberinto)[MAX_COLUMNAS];
+};
+
+// Definición de la estructura para los argumentos que se usan en la funcion de imprimir
+struct PrintArgs {
+    int *filas;
     char (*laberinto)[MAX_COLUMNAS];
 };
 
@@ -62,6 +68,21 @@ void imprimirLaberinto(char laberinto[][MAX_COLUMNAS], int filas) {
     }
 }
 
+void *imprimir_laberinto(void *args){
+    //Convertir argumento en la estructura
+    struct PrintArgs *print_args = (struct PrintArgs *)args;
+
+    char (*laberinto)[MAX_COLUMNAS] = print_args->laberinto;
+    int filas = *(print_args->filas);
+
+    printf("Laberinto:\n");
+    for (int i = 0; i < filas + 1; i++) {
+        printf("%s\n", laberinto[i]);
+    };
+
+    return NULL;
+}
+
 void *HiloLogic(void *args) {
     // Convertir el argumento genérico a la estructura ThreadArgs
     struct ThreadArgs *thread_args = (struct ThreadArgs *)args;
@@ -94,11 +115,16 @@ int main() {
     thread_args.hilo = &hilo1;
     thread_args.laberinto = laberinto;
 
-    pthread_t HiloInicial;
-    pthread_create(&HiloInicial,NULL,&HiloLogic,&thread_args);
-    pthread_join(HiloInicial,NULL);
+    struct PrintArgs print_args;
+    print_args.laberinto = laberinto;
+    print_args.filas = &filas;
 
-    imprimirLaberinto(laberinto, filas);
+    pthread_t HiloInicial;
+    pthread_t HiloImprimir;
+    pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
+    pthread_create(&HiloImprimir, NULL, &imprimir_laberinto, &print_args);
+    pthread_join(HiloInicial, NULL);
+    pthread_join(HiloImprimir, NULL);
     
 
     return 0;
