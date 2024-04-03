@@ -30,6 +30,9 @@ struct PrintArgs {
     char (*laberinto)[MAX_COLUMNAS];
 };
 
+//Prototipo, para que la funcion este creada desnte antes y no me de problemas con las revisiones horizontales y verticales
+void *hilo_logic(void *args);
+
 void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *columnas, const char *nombre_archivo) {
     FILE *archivo;
     char c;
@@ -67,7 +70,7 @@ void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *colu
 void *imprimir_laberinto(void *args){
 
     //Tiempo que estara dormido
-    struct timespec tiempo = { 2,5 };
+    struct timespec tiempo = { 1,5 };
 
     //Convertir argumento en la estructura
     struct PrintArgs *print_args = (struct PrintArgs *)args;
@@ -104,10 +107,105 @@ void *imprimir_laberinto(void *args){
     return NULL;
 }
 
-void *HiloLogic(void *args) {
+void revisar_horizontal(char (*laberinto)[100], struct Hilo *hilo){
+
+    //Revisa Izquierda y Derecha
+    if(laberinto[hilo->fila][hilo->columna+1] == '0' && laberinto[hilo->fila][hilo->columna-1] == '0'){
+        //Crear Hilo Para Derecha
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'D'};
+        struct ThreadArgs thread_args1;
+        thread_args1.hilo = &hilo1;
+        thread_args1.laberinto = laberinto;
+
+        //Crear Hilo Izquierda
+        struct Hilo hilo2 = {hilo->fila, hilo->columna, 'I'};
+        struct ThreadArgs thread_args2;
+        thread_args2.hilo = &hilo2;
+        thread_args2.laberinto = laberinto;
+
+        pthread_t Hilo1;
+        pthread_t Hilo2;
+        pthread_create(&Hilo1, NULL, &hilo_logic, &thread_args1);
+        pthread_create(&Hilo2, NULL, &hilo_logic, &thread_args2);
+        pthread_join(Hilo1, NULL);
+        pthread_join(Hilo2, NULL);
+
+    } else if(laberinto[hilo->fila][hilo->columna+1] == '0'){
+        //Crear Hilo
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'D'};
+        struct ThreadArgs thread_args;
+        thread_args.hilo = &hilo1;
+        thread_args.laberinto = laberinto;
+
+        pthread_t HiloInicial;
+        pthread_create(&HiloInicial, NULL, &hilo_logic, &thread_args);
+        pthread_join(HiloInicial, NULL);
+    } else if(laberinto[hilo->fila][hilo->columna-1] == '0'){
+        //Crear Hilo
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'I'};
+        struct ThreadArgs thread_args;
+        thread_args.hilo = &hilo1;
+        thread_args.laberinto = laberinto;
+
+        pthread_t HiloInicial;
+        pthread_create(&HiloInicial, NULL, &hilo_logic, &thread_args);
+        pthread_join(HiloInicial, NULL);
+    }
+}
+
+void revisar_vertical(char (*laberinto)[100], struct Hilo *hilo){
+
+    //Revisa Arriba y Abajo
+    if(laberinto[hilo->fila-1][hilo->columna] == '0' && laberinto[hilo->fila+1][hilo->columna] == '0'){
+        //Crear Hilo Para Derecha
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'R'};
+        struct ThreadArgs thread_args1;
+        thread_args1.hilo = &hilo1;
+        thread_args1.laberinto = laberinto;
+
+        //Crear Hilo Izquierda
+        struct Hilo hilo2 = {hilo->fila, hilo->columna, 'A'};
+        struct ThreadArgs thread_args2;
+        thread_args2.hilo = &hilo2;
+        thread_args2.laberinto = laberinto;
+
+        pthread_t Hilo1;
+        pthread_t Hilo2;
+        pthread_create(&Hilo1, NULL, &hilo_logic, &thread_args1);
+        pthread_create(&Hilo2, NULL, &hilo_logic, &thread_args2);
+        pthread_join(Hilo1, NULL);
+        pthread_join(Hilo2, NULL);
+
+    }
+    if(laberinto[hilo->fila-1][hilo->columna] == '0'){
+        //Crear Hilo
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'R'};
+        struct ThreadArgs thread_args;
+        thread_args.hilo = &hilo1;
+        thread_args.laberinto = laberinto;
+
+        pthread_t HiloInicial;
+        pthread_create(&HiloInicial, NULL, &hilo_logic, &thread_args);
+        pthread_join(HiloInicial, NULL);
+    }
+
+    if(laberinto[hilo->fila+1][hilo->columna] == '0'){
+        //Crear Hilo
+        struct Hilo hilo1 = {hilo->fila, hilo->columna, 'A'};
+        struct ThreadArgs thread_args;
+        thread_args.hilo = &hilo1;
+        thread_args.laberinto = laberinto;
+
+        pthread_t HiloInicial;
+        pthread_create(&HiloInicial, NULL, &hilo_logic, &thread_args);
+        pthread_join(HiloInicial, NULL);
+    }
+}
+
+void *hilo_logic(void *args) {
 
     //Tiempo que estara dormido
-    struct timespec tiempo = { 3,0 };
+    struct timespec tiempo = { 5,0 };
 
     // Convertir el argumento a la estructura ThreadArgs
     struct ThreadArgs *thread_args = (struct ThreadArgs *)args;
@@ -140,31 +238,7 @@ void *HiloLogic(void *args) {
         }
         contadorHilos--;
 
-        //Revisa Izquierda y Derecha
-        if(laberinto[hilo->fila][hilo->columna+1] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'D'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
-        printf("HOLA");
-
-        if(laberinto[hilo->fila][hilo->columna-1] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'I'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
+        revisar_horizontal(laberinto,hilo);
 
     }else if(hilo->dir == 'D'){
         //Abajo
@@ -179,30 +253,7 @@ void *HiloLogic(void *args) {
         }
         contadorHilos--;
 
-        //Revisa Arriba y Abajo
-        if(laberinto[hilo->fila-1][hilo->columna] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'R'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
-
-        if(laberinto[hilo->fila+1][hilo->columna] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'A'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
+        revisar_vertical(laberinto,hilo);
 
     }else if(hilo->dir == 'R'){
         //Abajo
@@ -217,30 +268,7 @@ void *HiloLogic(void *args) {
         }
         contadorHilos--;
 
-        //Revisa Izquierda y Derecha
-        if(laberinto[hilo->fila][hilo->columna+1] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'D'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
-
-        if(laberinto[hilo->fila][hilo->columna-1] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'I'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
+        revisar_horizontal(laberinto,hilo);
 
     }else if(hilo->dir == 'I'){
         //Abajo
@@ -255,30 +283,7 @@ void *HiloLogic(void *args) {
         }
         contadorHilos--;
 
-        //Revisa Arriba y Abajo
-        if(laberinto[hilo->fila-1][hilo->columna] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'R'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
-
-        if(laberinto[hilo->fila+1][hilo->columna] == '0'){
-            //Crear Hilo
-            struct Hilo hilo1 = {hilo->fila, hilo->columna, 'A'};
-            struct ThreadArgs thread_args;
-            thread_args.hilo = &hilo1;
-            thread_args.laberinto = laberinto;
-
-            pthread_t HiloInicial;
-            pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
-            pthread_join(HiloInicial, NULL);
-        }
+        revisar_vertical(laberinto,hilo);
     }
     
    
@@ -303,7 +308,7 @@ int main() {
 
     pthread_t HiloInicial;
     pthread_t HiloImprimir;
-    pthread_create(&HiloInicial, NULL, &HiloLogic, &thread_args);
+    pthread_create(&HiloInicial, NULL, &hilo_logic, &thread_args);
     pthread_create(&HiloImprimir, NULL, &imprimir_laberinto, &print_args);
     pthread_join(HiloInicial, NULL);
     pthread_join(HiloImprimir, NULL);
