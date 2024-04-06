@@ -7,6 +7,17 @@
 //Numero de Filas y Columnas Maximas
 #define MAX_FILAS 100
 #define MAX_COLUMNAS 100
+// Definir el rango de caracteres permitidos
+#define MIN_CHAR 'a'
+#define MAX_CHAR 'z'
+
+// Variable estática para mantener el registro de caracteres asignados
+static int caracteres_asignados[MAX_FILAS * MAX_COLUMNAS] = {0};
+// Mutex para sincronizar el acceso a la función generar_caracter_aleatorio
+pthread_mutex_t mutex_generar_caracter = PTHREAD_MUTEX_INITIALIZER;
+
+//Laberinto
+char laberinto[MAX_FILAS][MAX_COLUMNAS];
 
 // Definición de la estructura del Hilo
 struct Hilo {
@@ -14,6 +25,7 @@ struct Hilo {
     int columna;
     char dir;
     int caracter;
+    int caracter_recorrido;
     int posicion_arreglo;
 };
 
@@ -38,6 +50,34 @@ struct PrintArgs {
 
 //Prototipo para que la funcion este creada desde antes y no de problemas con las revisiones horizontales y verticales
 void *hilo_logic(void *args);
+
+//Funcion que genera un caracter random
+char generar_caracter_aleatorio() {
+
+    // Bloquear el mutex para asegurar acceso exclusivo a la generación de caracteres aleatorios
+    pthread_mutex_lock(&mutex_generar_caracter);
+
+    // Establecer la semilla para la generación de números aleatorios
+    srand(time(NULL));
+
+    char caracter_aleatorio;
+    int num_aleatorio;
+
+    // Generar caracteres aleatorios hasta encontrar uno que no esté asignado
+    do {
+        // Generar un número aleatorio en el rango de valores de los caracteres permitidos
+        num_aleatorio = rand() % (MAX_CHAR - MIN_CHAR + 1) + MIN_CHAR;
+        caracter_aleatorio = (char)num_aleatorio;
+    } while (caracteres_asignados[num_aleatorio - MIN_CHAR] != 0);
+
+    // Marcar el caracter como asignado
+    caracteres_asignados[num_aleatorio - MIN_CHAR] = 1;
+
+    // Desbloquear el mutex después de generar el caracter
+    pthread_mutex_unlock(&mutex_generar_caracter);
+
+    return caracter_aleatorio;
+}
 
 //Funcion para leer el archivo
 void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *columnas, const char *nombre_archivo) {
@@ -85,8 +125,6 @@ void *imprimir_laberinto(void *args){
 
     //Convertir argumento en la estructura
     struct PrintArgs *print_args = (struct PrintArgs *)args;
-
-    char (*laberinto)[MAX_COLUMNAS] = print_args->laberinto;
     int filas = *(print_args->filas);
 
     while(!ciclo){
@@ -102,8 +140,12 @@ void *imprimir_laberinto(void *args){
                             exit(EXIT_SUCCESS);
                         }
 
-                        printf("%d", hilosActivos[hilo].caracter);
-                        hilo_encontrado = 1;
+                        if(hilosActivos[hilo].caracter_recorrido){
+                            putchar(hilosActivos[hilo].caracter_recorrido);
+                        }else{
+                            printf("%d", hilosActivos[hilo].caracter); 
+                        }
+                        hilo_encontrado = 1; 
                         break;
                     }
                 }
@@ -253,6 +295,8 @@ void *hilo_logic(void *args) {
     hilosActivos[contadorHilos].caracter = hilo->caracter;
     hilosActivos[contadorHilos].posicion_arreglo = contadorHilos;
     contadorHilos++;
+
+    char caracter_recorrido = generar_caracter_aleatorio();
     
     //Revisa todas las posibilidades de movimiento A: abajo R: Arriba D: derecha I: izquierda
     //En el ciclo while, movera el hilo en la direccion dada, hasta que ya no se pueda
@@ -263,6 +307,9 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila+1][hilo->columna] == '0'){
             hilo->fila = hilo->fila + 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila; 
+
+            laberinto[hilo->fila-1][hilo->columna] = caracter_recorrido;
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
 
@@ -270,8 +317,8 @@ void *hilo_logic(void *args) {
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
         }else{
-           hilosActivos[hilo->posicion_arreglo].caracter = 0;
-           revisar_horizontal(laberinto,hilo); 
+            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
+            revisar_horizontal(laberinto,hilo); 
         }
 
     }else if(hilo->dir == 'D'){
@@ -279,13 +326,16 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna + 1] == '0'){
             hilo->columna = hilo->columna + 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
+
+            laberinto[hilo->fila][hilo->columna-1] = caracter_recorrido;
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
         }else{
-           hilosActivos[hilo->posicion_arreglo].caracter = 0;
+           hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_vertical(laberinto,hilo);
         }
 
@@ -295,13 +345,16 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila-1][hilo->columna] == '0'){
             hilo->fila = hilo->fila - 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila;
+
+            laberinto[hilo->fila + 1][hilo->columna] = caracter_recorrido;
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
         }else{
-           hilosActivos[hilo->posicion_arreglo].caracter = 0;
+           hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_horizontal(laberinto,hilo);
         }
 
@@ -310,13 +363,16 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna - 1] == '0'){
             hilo->columna = hilo->columna - 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
+
+            laberinto[hilo->fila][hilo->columna+1] = caracter_recorrido;
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
         }else{
-           hilosActivos[hilo->posicion_arreglo].caracter = 0;
+           hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_vertical(laberinto,hilo);
         }   
     }
@@ -325,8 +381,6 @@ void *hilo_logic(void *args) {
 }
 
 int main() {
-
-    char laberinto[MAX_FILAS][MAX_COLUMNAS];
     int filas, columnas;
     struct Hilo hilo1 = {0, 0, 'A',caracter_hilo};
 
