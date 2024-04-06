@@ -114,7 +114,7 @@ void *imprimir_laberinto(void *args){
             }
             printf("\n");
         }
-        pthread_delay_np(&tiempo);
+        usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
     }
     return NULL;
 }
@@ -263,7 +263,7 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila+1][hilo->columna] == '0'){
             hilo->fila = hilo->fila + 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila; 
-            pthread_delay_np(&tiempo);
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
 
         //Verifica si ya llego al final, en caso que no verifica si puede moverse
@@ -279,10 +279,8 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna + 1] == '0'){
             hilo->columna = hilo->columna + 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
-            pthread_delay_np(&tiempo);
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
-
-        pthread_cancel(pthread_self());
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
@@ -297,10 +295,8 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila-1][hilo->columna] == '0'){
             hilo->fila = hilo->fila - 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila;
-            pthread_delay_np(&tiempo);
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
-
-        pthread_cancel(pthread_self());
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
@@ -314,10 +310,8 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna - 1] == '0'){
             hilo->columna = hilo->columna - 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
-            pthread_delay_np(&tiempo);
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
         }
-
-        pthread_cancel(pthread_self());
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
