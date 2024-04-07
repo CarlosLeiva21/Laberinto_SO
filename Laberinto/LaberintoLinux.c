@@ -27,6 +27,7 @@ struct Hilo {
     int caracter;
     int caracter_recorrido;
     int posicion_arreglo;
+    int espacios_recorridos;
 };
 
 //Caracter Hilo
@@ -117,9 +118,6 @@ void leer_archivo(char laberinto[MAX_FILAS][MAX_COLUMNAS], int *filas, int *colu
 //Funcion para imprimir el laberinto
 void *imprimir_laberinto(void *args){
 
-    //Variable para el ciclo infinito
-    int ciclo = 0;
-
     //Tiempo que estara dormido
     struct timespec tiempo = { 1,5 };
 
@@ -127,7 +125,8 @@ void *imprimir_laberinto(void *args){
     struct PrintArgs *print_args = (struct PrintArgs *)args;
     int filas = *(print_args->filas);
 
-    while(!ciclo){
+    while(1){
+
         printf("Laberinto:\n");
         for (int fila = 0; fila < filas + 1; fila++) {
             for (int columna = 0; columna < MAX_COLUMNAS; columna++) {
@@ -135,10 +134,6 @@ void *imprimir_laberinto(void *args){
                 int hilo_encontrado = 0;
                 for (int hilo = 0; hilo < contadorHilos; hilo++) {
                     if (hilosActivos[hilo].fila == fila && hilosActivos[hilo].columna == columna) {
-                        if(hilosActivos[hilo].caracter == -1){
-                            ciclo = 1;
-                            exit(EXIT_SUCCESS);
-                        }
 
                         if(hilosActivos[hilo].caracter_recorrido){
                             putchar(hilosActivos[hilo].caracter_recorrido);
@@ -155,7 +150,23 @@ void *imprimir_laberinto(void *args){
                 }
             }
             printf("\n");
+            
         }
+
+        // Mostrar los caracteres recorridos de los hilos terminados
+        printf("Hilos terminados:\n");
+        for (int hilo = 0; hilo < contadorHilos; hilo++) {
+
+            if(hilosActivos[hilo].caracter == -1){
+                printf("Hilo %d: Carácter recorrido: %c Espacios Recorridos: %d\n", hilo + 1, hilosActivos[hilo].caracter_recorrido, hilosActivos[hilo].espacios_recorridos);
+                exit(EXIT_SUCCESS);
+            }
+
+            if(hilosActivos[hilo].caracter_recorrido){
+                printf("Hilo %d: Carácter recorrido: %c Espacios Recorridos: %d\n", hilo + 1, hilosActivos[hilo].caracter_recorrido, hilosActivos[hilo].espacios_recorridos);
+            }
+        }
+
         usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
     }
     return NULL;
@@ -294,6 +305,10 @@ void *hilo_logic(void *args) {
     hilosActivos[contadorHilos].dir = hilo->dir;
     hilosActivos[contadorHilos].caracter = hilo->caracter;
     hilosActivos[contadorHilos].posicion_arreglo = contadorHilos;
+    if(hilo->espacios_recorridos){
+       hilosActivos[contadorHilos].espacios_recorridos = hilo->espacios_recorridos; 
+    }else{hilosActivos[contadorHilos].espacios_recorridos = 0;}
+    
     contadorHilos++;
 
     char caracter_recorrido = generar_caracter_aleatorio();
@@ -307,6 +322,7 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila+1][hilo->columna] == '0'){
             hilo->fila = hilo->fila + 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila; 
+            hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila-1][hilo->columna] = caracter_recorrido;
 
@@ -316,6 +332,7 @@ void *hilo_logic(void *args) {
         //Verifica si ya llego al final, en caso que no verifica si puede moverse
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
+            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
             revisar_horizontal(laberinto,hilo); 
@@ -326,6 +343,7 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna + 1] == '0'){
             hilo->columna = hilo->columna + 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
+            hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila][hilo->columna-1] = caracter_recorrido;
 
@@ -334,6 +352,7 @@ void *hilo_logic(void *args) {
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
+            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_vertical(laberinto,hilo);
@@ -345,6 +364,7 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila-1][hilo->columna] == '0'){
             hilo->fila = hilo->fila - 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila;
+            hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila + 1][hilo->columna] = caracter_recorrido;
 
@@ -353,6 +373,7 @@ void *hilo_logic(void *args) {
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
+            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_horizontal(laberinto,hilo);
@@ -363,6 +384,7 @@ void *hilo_logic(void *args) {
         while(laberinto[hilo->fila][hilo->columna - 1] == '0'){
             hilo->columna = hilo->columna - 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
+            hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila][hilo->columna+1] = caracter_recorrido;
 
@@ -371,6 +393,7 @@ void *hilo_logic(void *args) {
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
+            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
            revisar_vertical(laberinto,hilo);
@@ -383,8 +406,9 @@ void *hilo_logic(void *args) {
 int main() {
     int filas, columnas;
     struct Hilo hilo1 = {0, 0, 'A',caracter_hilo};
+    hilo1.espacios_recorridos = 1;
 
-    leer_archivo(laberinto, &filas, &columnas, "laberinto.txt");
+    leer_archivo(laberinto, &filas, &columnas, "lab1.txt");
 
     struct ThreadArgs thread_args;
     thread_args.hilo = &hilo1;
