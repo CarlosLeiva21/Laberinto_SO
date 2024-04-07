@@ -136,6 +136,7 @@ void *imprimir_laberinto(void *args){
                     if (hilosActivos[hilo].fila == fila && hilosActivos[hilo].columna == columna) {
 
                         if(hilosActivos[hilo].caracter_recorrido){
+                            // laberinto[fila][columna] = hilosActivos[hilo].caracter_recorrido;
                             putchar(hilosActivos[hilo].caracter_recorrido);
                         }else{
                             printf("%d", hilosActivos[hilo].caracter); 
@@ -157,6 +158,10 @@ void *imprimir_laberinto(void *args){
         printf("Hilos terminados:\n");
         for (int hilo = 0; hilo < contadorHilos; hilo++) {
 
+            if(contadorHilos > 10){
+                hilo = contadorHilos - 2;
+            }
+
             if(hilosActivos[hilo].caracter == -1){
                 printf("Hilo %d: Carácter recorrido: %c Espacios Recorridos: %d\n", hilo + 1, hilosActivos[hilo].caracter_recorrido, hilosActivos[hilo].espacios_recorridos);
                 exit(EXIT_SUCCESS);
@@ -172,7 +177,7 @@ void *imprimir_laberinto(void *args){
     return NULL;
 }
 
-void revisar_horizontal(char (*laberinto)[100], struct Hilo *hilo){
+void revisar_horizontal(struct Hilo *hilo){
 
     //Reiniciar caracter hilo en caso de llegar a ser de 2 digitos
     if(caracter_hilo + 2 > 8){
@@ -227,7 +232,7 @@ void revisar_horizontal(char (*laberinto)[100], struct Hilo *hilo){
     }
 }
 
-void revisar_vertical(char (*laberinto)[100], struct Hilo *hilo){
+void revisar_vertical(struct Hilo *hilo){
 
     //Reiniciar caracter hilo en caso de llegar a ser de 2 digitos
     if(caracter_hilo + 2 > 8){
@@ -285,6 +290,32 @@ void revisar_vertical(char (*laberinto)[100], struct Hilo *hilo){
     }
 }
 
+// Función para revisar horizontal de forma asíncrona
+void *revisar_horizontal_asinc(void *args) {
+    // Convertir el argumento a la estructura ThreadArgs
+    struct ThreadArgs *thread_args = (struct ThreadArgs *)args;
+
+    struct Hilo *hilo = thread_args-> hilo;
+    
+    // Ejecutar la revisión horizontal
+    revisar_horizontal(hilo);
+
+    return NULL;
+}
+
+// Función para revisar vertical de forma asíncrona
+void *revisar_vertical_asinc(void *args) {
+    // Convertir el argumento a la estructura ThreadArgs
+    struct ThreadArgs *thread_args = (struct ThreadArgs *)args;
+
+    struct Hilo *hilo = thread_args-> hilo;
+
+    // Ejecutar la revisión vertical
+    revisar_vertical(thread_args->hilo);
+
+    return NULL;
+}
+
 void *hilo_logic(void *args) {
 
     //Tiempo que estara dormido
@@ -320,13 +351,18 @@ void *hilo_logic(void *args) {
     if(hilo->dir == 'A'){
         //Abajo
         while(laberinto[hilo->fila+1][hilo->columna] == '0'){
+
             hilo->fila = hilo->fila + 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila; 
             hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila-1][hilo->columna] = caracter_recorrido;
 
-            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
+            pthread_t hilo_revisar_horizontal;
+            pthread_create(&hilo_revisar_horizontal, NULL, &revisar_horizontal_asinc, args);
+
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
+
         }
 
         //Verifica si ya llego al final, en caso que no verifica si puede moverse
@@ -335,19 +371,24 @@ void *hilo_logic(void *args) {
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
-            revisar_horizontal(laberinto,hilo); 
+            // revisar_horizontal(hilo);
         }
 
     }else if(hilo->dir == 'D'){
         //Derecha
         while(laberinto[hilo->fila][hilo->columna + 1] == '0'){
+
             hilo->columna = hilo->columna + 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
             hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila][hilo->columna-1] = caracter_recorrido;
 
-            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
+            pthread_t hilo_revisar_vertical;
+            pthread_create(&hilo_revisar_vertical, NULL, &revisar_vertical_asinc, args);
+
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
+
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
@@ -355,20 +396,25 @@ void *hilo_logic(void *args) {
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
-           revisar_vertical(laberinto,hilo);
+        //    revisar_vertical(hilo);
         }
 
 
     }else if(hilo->dir == 'R'){
         //Arriba
         while(laberinto[hilo->fila-1][hilo->columna] == '0'){
+
             hilo->fila = hilo->fila - 1;
             hilosActivos[hilo->posicion_arreglo].fila = hilo->fila;
             hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila + 1][hilo->columna] = caracter_recorrido;
 
-            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
+            pthread_t hilo_revisar_horizontal;
+            pthread_create(&hilo_revisar_horizontal, NULL, &revisar_horizontal_asinc, args);
+
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
+
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
@@ -376,19 +422,24 @@ void *hilo_logic(void *args) {
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
-           revisar_horizontal(laberinto,hilo);
+        //    revisar_horizontal(hilo);
         }
 
     }else if(hilo->dir == 'I'){
         //Izquierda
         while(laberinto[hilo->fila][hilo->columna - 1] == '0'){
+
             hilo->columna = hilo->columna - 1;
             hilosActivos[hilo->posicion_arreglo].columna = hilo->columna;
             hilosActivos[hilo->posicion_arreglo].espacios_recorridos++;
 
             laberinto[hilo->fila][hilo->columna+1] = caracter_recorrido;
 
-            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);;
+            pthread_t hilo_revisar_vertical;
+            pthread_create(&hilo_revisar_vertical, NULL, &revisar_vertical_asinc, args);
+
+            usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);            
+
         }
 
         if(laberinto[hilo->fila+1][hilo->columna] == '/'){
@@ -396,7 +447,7 @@ void *hilo_logic(void *args) {
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
            hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
-           revisar_vertical(laberinto,hilo);
+        //    revisar_vertical(hilo);
         }   
     }
 
@@ -408,7 +459,7 @@ int main() {
     struct Hilo hilo1 = {0, 0, 'A',caracter_hilo};
     hilo1.espacios_recorridos = 1;
 
-    leer_archivo(laberinto, &filas, &columnas, "lab1.txt");
+    leer_archivo(laberinto, &filas, &columnas, "lab2.txt");
 
     struct ThreadArgs thread_args;
     thread_args.hilo = &hilo1;
