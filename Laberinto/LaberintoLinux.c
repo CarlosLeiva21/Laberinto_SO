@@ -378,10 +378,18 @@ void *hilo_logic(void *args) {
             pthread_create(&hilo_revisar_horizontal, NULL, &revisar_horizontal_asinc, args);
 
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
+
+            if(laberinto[hilo->fila][hilo->columna+1] == '/' || 
+            laberinto[hilo->fila][hilo->columna-1] == '/'){
+                break;
+            }
         }
 
         //Verifica si ya llego al final, en caso que no verifica si puede moverse
-        if(laberinto[hilo->fila+1][hilo->columna] == '/'){
+        if(laberinto[hilo->fila+1][hilo->columna] == '/' || 
+            laberinto[hilo->fila][hilo->columna+1] == '/' || 
+            laberinto[hilo->fila][hilo->columna-1] == '/'){
+
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
@@ -403,10 +411,18 @@ void *hilo_logic(void *args) {
             pthread_t hilo_revisar_vertical;
             pthread_create(&hilo_revisar_vertical, NULL, &revisar_vertical_asinc, args);
 
+
+            if(laberinto[hilo->fila+1][hilo->columna] == '/' || 
+            laberinto[hilo->fila-1][hilo->columna] == '/'){
+                break;
+            }
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
         }
 
-        if(laberinto[hilo->fila][hilo->columna + 1] == '/'){
+        if(laberinto[hilo->fila][hilo->columna + 1] == '/' || 
+            laberinto[hilo->fila+1][hilo->columna] == '/' || 
+            laberinto[hilo->fila-1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
@@ -428,10 +444,17 @@ void *hilo_logic(void *args) {
             pthread_t hilo_revisar_horizontal;
             pthread_create(&hilo_revisar_horizontal, NULL, &revisar_horizontal_asinc, args);
 
+            if(laberinto[hilo->fila][hilo->columna+1] == '/' || 
+            laberinto[hilo->fila][hilo->columna-1] == '/'){
+                break;
+            }
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);
         }
 
-        if(laberinto[hilo->fila-1][hilo->columna] == '/'){
+        if(laberinto[hilo->fila-1][hilo->columna] == '/' || 
+            laberinto[hilo->fila][hilo->columna+1] == '/' || 
+            laberinto[hilo->fila][hilo->columna-1] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
@@ -453,10 +476,17 @@ void *hilo_logic(void *args) {
             pthread_t hilo_revisar_vertical;
             pthread_create(&hilo_revisar_vertical, NULL, &revisar_vertical_asinc, args);
 
+            if(laberinto[hilo->fila+1][hilo->columna] == '/' || 
+            laberinto[hilo->fila-1][hilo->columna] == '/'){
+                break;
+            }            
+
             usleep(tiempo.tv_sec * 1000000 + tiempo.tv_nsec / 1000);            
         }
 
-        if(laberinto[hilo->fila][hilo->columna - 1] == '/'){
+        if(laberinto[hilo->fila][hilo->columna - 1] == '/' || 
+            laberinto[hilo->fila+1][hilo->columna] == '/' || 
+            laberinto[hilo->fila-1][hilo->columna] == '/'){
             hilosActivos[hilo->posicion_arreglo].caracter = -1;
             hilosActivos[hilo->posicion_arreglo].caracter_recorrido = caracter_recorrido;
         }else{
@@ -473,7 +503,7 @@ int main() {
     struct Hilo hilo1 = {0, 0, 'A',caracter_hilo};
     hilo1.espacios_recorridos = 1;
 
-    leer_archivo(laberinto, &filas, &columnas, "lab2.txt");
+    leer_archivo(laberinto, &filas, &columnas, "lab5.txt");
 
     //Estructuras de argumentos para los hilos
     struct ThreadArgs thread_args;
